@@ -5,11 +5,11 @@ import { ColorPicker } from '../ui/ColorPicker';
 import { CircularTimePicker } from '../ui/CircularTimePicker';
 import { SoundPicker } from '../ui/SoundPicker';
 import { Button } from '../ui/Button';
-import type { BlockColor, NotificationSound, TimeBlock } from '../../lib/types';
-import { Minus, Plus } from 'lucide-react';
+import type { BlockColor, NotificationSound, TimeBlock, EnergyLevel } from '../../lib/types';
+import { Minus, Plus, Zap } from 'lucide-react';
 import { nowTime } from '../../lib/utils';
 
-type Step = 'icon' | 'color' | 'time' | 'duration' | 'sound' | 'recurrence';
+type Step = 'icon' | 'color' | 'time' | 'duration' | 'energy' | 'sound' | 'recurrence';
 
 interface AddBlockWizardProps {
   onSave: (block: Omit<TimeBlock, 'id'>) => void;
@@ -17,7 +17,7 @@ interface AddBlockWizardProps {
   initial?: Partial<TimeBlock>;
 }
 
-const STEP_ORDER: Step[] = ['icon', 'color', 'time', 'duration', 'sound', 'recurrence'];
+const STEP_ORDER: Step[] = ['icon', 'color', 'time', 'duration', 'energy', 'sound', 'recurrence'];
 
 
 const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -32,6 +32,7 @@ export function AddBlockWizard({ onSave, onCancel, initial }: AddBlockWizardProp
   const [label, setLabel] = useState(initial?.label ?? '');
   const [selectedDays, setSelectedDays] = useState<number[]>(initial?.recurrence?.days ?? [0, 1, 2, 3, 4, 5, 6]);
   const [everyN, setEveryN] = useState(initial?.recurrence?.every ?? 1);
+  const [energyLevel, setEnergyLevel] = useState<EnergyLevel>(initial?.energyLevel ?? 'medium');
 
   const stepIndex = STEP_ORDER.indexOf(step);
 
@@ -55,6 +56,7 @@ export function AddBlockWizard({ onSave, onCancel, initial }: AddBlockWizardProp
       sound,
       recurrence: { type: 'weekly', days: selectedDays, every: everyN },
       notes: '',
+      energyLevel,
     });
   };
 
@@ -148,6 +150,38 @@ export function AddBlockWizard({ onSave, onCancel, initial }: AddBlockWizardProp
                 <Button variant="secondary" className="flex-1" onClick={prev}>Back</Button>
                 <Button className="flex-1" onClick={next}>Next</Button>
               </div>
+            </div>
+          )}
+
+          {step === 'energy' && (
+            <div className="flex flex-col items-center justify-center flex-1 px-6 gap-6">
+              <div className="flex items-center gap-2">
+                <Zap size={20} className="text-amber-500" />
+                <h2 className="text-lg font-bold text-stone-900">Energy Level</h2>
+              </div>
+              <p className="text-sm text-stone-400 text-center">How much energy does this block require?</p>
+              <div className="flex flex-col gap-3 w-full">
+                {([
+                  { value: 'high' as EnergyLevel, label: 'High Energy', emoji: '⚡', desc: 'Intense focus, exercise, deep work', bg: 'bg-rose-50', border: 'border-rose-300', text: 'text-rose-700' },
+                  { value: 'medium' as EnergyLevel, label: 'Medium Energy', emoji: '🔥', desc: 'Meetings, creative work, learning', bg: 'bg-amber-50', border: 'border-amber-300', text: 'text-amber-700' },
+                  { value: 'low' as EnergyLevel, label: 'Low Energy', emoji: '🌿', desc: 'Admin, email, light tasks, rest', bg: 'bg-emerald-50', border: 'border-emerald-300', text: 'text-emerald-700' },
+                ] as const).map(({ value, label, emoji, desc, bg, border, text }) => (
+                  <button
+                    key={value}
+                    onClick={() => { setEnergyLevel(value); next(); }}
+                    className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${
+                      energyLevel === value ? `${bg} ${border}` : 'bg-white border-stone-200 hover:border-stone-300'
+                    }`}
+                  >
+                    <span className="text-2xl">{emoji}</span>
+                    <div>
+                      <p className={`text-sm font-bold ${energyLevel === value ? text : 'text-stone-800'}`}>{label}</p>
+                      <p className="text-xs text-stone-400">{desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <Button variant="secondary" className="w-full" onClick={prev}>Back</Button>
             </div>
           )}
 

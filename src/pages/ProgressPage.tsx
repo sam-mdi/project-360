@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -8,8 +9,15 @@ import { usePlans } from '../stores/usePlans';
 import { StreakBadge } from '../components/progress/StreakBadge';
 import { HeatMap } from '../components/progress/HeatMap';
 import { WheelOfLife } from '../components/progress/WheelOfLife';
+import { HabitStreaks } from '../components/progress/HabitStreaks';
+import { MoodChart } from '../components/progress/MoodChart';
+import { WaterSteps } from '../components/progress/WaterSteps';
+import { WeeklyScoreCard } from '../components/progress/WeeklyScoreCard';
+import { GoalsSection } from '../components/progress/GoalsSection';
+import { WheelOfLifeModal } from '../components/ui/WheelOfLifeModal';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { cn } from '../lib/utils';
+import { RefreshCw } from 'lucide-react';
 
 function StatTile({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color?: string }) {
   return (
@@ -24,6 +32,7 @@ function StatTile({ label, value, sub, color }: { label: string; value: string |
 export function ProgressPage() {
   const { dailyRoutines } = useRoutine();
   const { plans, activePlanId } = usePlans();
+  const [showWheelModal, setShowWheelModal] = useState(false);
   const activePlan = plans.find((p) => p.id === activePlanId);
 
   // Build 7-day bar data
@@ -74,7 +83,17 @@ export function ProgressPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-stone-900">Progress</h1>
-          <StreakBadge />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowWheelModal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-stone-500 hover:bg-stone-100 transition-colors"
+              title="Wheel of Life check-in"
+            >
+              <RefreshCw size={12} />
+              Life Check-in
+            </button>
+            <StreakBadge />
+          </div>
         </div>
 
         {/* Today's donut */}
@@ -129,6 +148,18 @@ export function ProgressPage() {
           <HeatMap />
         </div>
 
+        {/* Water & Steps */}
+        <WaterSteps />
+
+        {/* Mood Chart */}
+        <MoodChart />
+
+        {/* Weekly Score */}
+        <WeeklyScoreCard />
+
+        {/* Habit Streaks */}
+        <HabitStreaks />
+
         {/* Stat tiles */}
         <div className="grid grid-cols-2 gap-3">
           <StatTile
@@ -144,6 +175,9 @@ export function ProgressPage() {
             color="#10b981"
           />
         </div>
+
+        {/* Goals Section */}
+        <GoalsSection />
 
         {/* Plans section */}
         {plans.length > 0 && (
@@ -235,6 +269,8 @@ export function ProgressPage() {
           </div>
         )}
       </div>
+
+      {showWheelModal && <WheelOfLifeModal onClose={() => setShowWheelModal(false)} />}
     </div>
   );
 }

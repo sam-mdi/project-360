@@ -1,16 +1,23 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus } from 'lucide-react';
+import { Plus, Archive, Wand2, Timer } from 'lucide-react';
 import { Timeline } from '../components/routine/Timeline';
 import { BlockOptionsPanel } from '../components/routine/BlockOptionsPanel';
 import { AddBlockWizard } from '../components/routine/AddBlockWizard';
 import { SequenceEditor } from '../components/routine/SequenceEditor';
+import { AIBriefingCard } from '../components/routine/AIBriefingCard';
+import { AIScheduleModal } from '../components/ui/AIScheduleModal';
+import { MoodCheckIn } from '../components/ui/MoodCheckIn';
+import { PomodoroWidget } from '../components/ui/PomodoroWidget';
 import { Modal } from '../components/ui/Modal';
 import { useTimeBlocks } from '../hooks/useTimeBlocks';
 import { useRoutine } from '../stores/useRoutine';
+import { useHistory } from '../stores/useHistory';
+import { useSettings } from '../stores/useSettings';
 import { todayStr } from '../lib/utils';
 import { cn } from '../lib/utils';
 import { getColor } from '../lib/colors';
+import toast from 'react-hot-toast';
 
 type SubTab = 'me' | 'plans' | 'reality';
 
@@ -18,8 +25,12 @@ export function RoutinePage() {
   const [subTab, setSubTab] = useState<SubTab>('me');
   const [showAddWizard, setShowAddWizard] = useState(false);
   const [showSequenceEditor, setShowSequenceEditor] = useState(false);
+  const [showAISchedule, setShowAISchedule] = useState(false);
+  const [showPomodoro, setShowPomodoro] = useState(false);
+  const { claudeApiKey } = useSettings();
 
   const { selectBlock, selectedBlockId, blocks, sequences, addBlock, removeBlock, addSequence } = useRoutine();
+  const { saveDay } = useHistory();
   const timeBlocks = useTimeBlocks();
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) ?? null;
   const today = todayStr();
@@ -33,7 +44,35 @@ export function RoutinePage() {
   return (
     <div className="flex flex-col h-full relative">
       {/* Sub-tabs */}
-      <div className="flex items-center justify-center py-3 border-b border-stone-100 bg-white">
+      <div className="flex items-center justify-center py-3 border-b border-stone-100 bg-white relative">
+        <div className="absolute right-4 flex items-center gap-1">
+          {claudeApiKey && (
+            <button
+              onClick={() => setShowAISchedule(true)}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-semibold text-amber-600 hover:bg-amber-50 transition-colors"
+              title="AI Schedule Builder"
+            >
+              <Wand2 size={13} />
+            </button>
+          )}
+          <button
+            onClick={() => setShowPomodoro((v) => !v)}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-semibold text-stone-500 hover:bg-stone-100 transition-colors"
+            title="Pomodoro Timer"
+          >
+            <Timer size={13} />
+          </button>
+          <button
+            onClick={() => {
+              saveDay(today);
+              toast.success('Today saved to History');
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-stone-500 hover:bg-stone-100 transition-colors"
+            title="Save today's routine to History"
+          >
+            <Archive size={13} />
+          </button>
+        </div>
         <div className="flex gap-1 p-1 bg-stone-100 rounded-full">
           {tabs.map(({ id, label }) => (
             <button
@@ -64,6 +103,7 @@ export function RoutinePage() {
               transition={{ duration: 0.2 }}
               className="pb-24"
             >
+              <AIBriefingCard />
               <Timeline
                 blocks={timeBlocks}
                 onBlockClick={(id) => selectBlock(id === selectedBlockId ? null : id)}
@@ -271,6 +311,19 @@ export function RoutinePage() {
           onCancel={() => setShowSequenceEditor(false)}
         />
       </Modal>
+
+      {/* AI Schedule Modal */}
+      {showAISchedule && <AIScheduleModal onClose={() => setShowAISchedule(false)} />}
+
+      {/* Mood check-in (bottom sheet, shows once/day) */}
+      <MoodCheckIn />
+
+      {/* Pomodoro widget */}
+      {showPomodoro && (
+        <PomodoroWidget
+          onClose={() => setShowPomodoro(false)}
+        />
+      )}
     </div>
   );
 }

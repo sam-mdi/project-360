@@ -1,8 +1,7 @@
-
 import { motion } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { getColor } from '../../lib/colors';
-import type { BlockColor } from '../../lib/types';
+import type { BlockColor, EnergyLevel } from '../../lib/types';
 import { ProgressBar } from './ProgressBar';
 import { formatDuration, formatTime } from '../../lib/utils';
 import type { LucideIcon } from 'lucide-react';
@@ -21,89 +20,103 @@ interface WavyBlockProps {
   onClick?: () => void;
   isFirst?: boolean;
   isLast?: boolean;
+  energyLevel?: EnergyLevel;
 }
 
-function LucideIconComp({ name, size = 20 }: { name: string; size?: number }) {
+function LucideIconComp({ name, size = 22 }: { name: string; size?: number }) {
   const icons = LucideIcons as unknown as Record<string, LucideIcon>;
   const Icon = icons[name] ?? icons['Circle'];
   return <Icon size={size} />;
 }
 
+const ENERGY_DOT: Record<EnergyLevel, { emoji: string; title: string }> = {
+  high: { emoji: '⚡', title: 'High energy' },
+  medium: { emoji: '🔥', title: 'Medium energy' },
+  low: { emoji: '🌿', title: 'Low energy' },
+};
+
 export function WavyBlock({
   color, label, icon, startTime, duration,
   isActive, minutesIn = 0, minutesLeft = 0, progress = 0,
-  onClick, isFirst, isLast,
+  onClick, energyLevel,
 }: WavyBlockProps) {
   const c = getColor(color);
-  const minHeight = 80;
-  const height = Math.max(minHeight, duration * 1.6);
+  const blockHeight = Math.max(60, duration * 2);
 
   return (
     <motion.div
       onClick={onClick}
       className={cn(
         'relative w-full cursor-pointer select-none overflow-hidden',
-        isActive && 'ring-2 ring-white ring-offset-2 ring-offset-transparent z-10',
+        isActive && 'ring-2 ring-white ring-offset-2 ring-offset-stone-50',
       )}
       style={{
         backgroundColor: c.bg,
-        minHeight: `${height}px`,
-        borderRadius: isFirst
-          ? '20px 20px 28px 28px'
-          : isLast
-          ? '28px 28px 20px 20px'
-          : '28px',
-        clipPath: isFirst
-          ? undefined
-          : 'polygon(0% 8px, 3% 0%, 97% 0%, 100% 8px, 100% calc(100% - 8px), 97% 100%, 3% 100%, 0% calc(100% - 8px))',
-        marginTop: isFirst ? 0 : -6,
+        height: `${blockHeight}px`,
+        minHeight: `${blockHeight}px`,
+        borderRadius: 16,
+        background: `linear-gradient(135deg, ${c.bg} 0%, color-mix(in srgb, ${c.bg} 85%, black) 100%)`,
       }}
       whileHover={{ filter: 'brightness(1.06)' }}
       whileTap={{ scale: 0.99 }}
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 28 }}
     >
-      {/* Wavy SVG overlay for organic feel */}
-      <svg
-        className="absolute top-0 left-0 w-full"
-        height="20"
-        viewBox="0 0 100 20"
-        preserveAspectRatio="none"
-        style={{ opacity: 0.15 }}
-      >
-        <path d="M0,10 Q25,0 50,10 T100,10 L100,0 L0,0 Z" fill="white" />
-      </svg>
+      {/* Subtle top highlight */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.14) 0%, transparent 40%)',
+          borderRadius: 'inherit',
+        }}
+      />
 
-      <div className="relative px-4 py-3 h-full flex flex-col justify-between" style={{ minHeight: `${height}px` }}>
+      <div
+        className="relative px-4 h-full flex flex-col justify-between"
+        style={{ paddingTop: 10, paddingBottom: 10 }}
+      >
         {/* Top row: time + active badges */}
-        <div className="flex items-start justify-between">
-          <span className="text-xs font-semibold opacity-70" style={{ color: c.text }}>
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold opacity-75" style={{ color: c.text }}>
             {formatTime(startTime)}
           </span>
-          {isActive && (
-            <div className="flex gap-2">
-              <span className="text-xs font-bold bg-white/25 px-2 py-0.5 rounded-full" style={{ color: c.text }}>
-                {minutesIn}m in
+          <div className="flex items-center gap-1.5">
+            {energyLevel && (
+              <span title={ENERGY_DOT[energyLevel].title} className="text-xs opacity-80">
+                {ENERGY_DOT[energyLevel].emoji}
               </span>
-              <span className="text-xs font-bold bg-white/25 px-2 py-0.5 rounded-full" style={{ color: c.text }}>
-                {minutesLeft}m left
-              </span>
-            </div>
-          )}
+            )}
+            {isActive && (
+              <>
+                <span
+                  className="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.25)', color: c.text }}
+                >
+                  {minutesIn}m in
+                </span>
+                <span
+                  className="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.25)', color: c.text }}
+                >
+                  {minutesLeft}m left
+                </span>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Center: icon + label */}
-        <div className="flex items-center gap-3 py-2">
+        {/* Middle: icon + label */}
+        <div className="flex items-center gap-3">
           <span style={{ color: c.text, opacity: 0.9 }}>
             <LucideIconComp name={icon} size={22} />
           </span>
-          <span className="text-lg font-bold leading-tight" style={{ color: c.text }}>
+          <span className="text-base font-bold leading-tight" style={{ color: c.text }}>
             {label}
           </span>
         </div>
 
-        {/* Bottom row: duration + progress if active */}
+        {/* Bottom: duration + progress bar for active */}
         <div className="flex flex-col gap-1.5">
           {isActive && (
             <ProgressBar value={progress} color="rgba(255,255,255,0.8)" animated />
@@ -113,15 +126,6 @@ export function WavyBlock({
           </span>
         </div>
       </div>
-
-      {/* Subtle inner highlight */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 50%)',
-          borderRadius: 'inherit',
-        }}
-      />
     </motion.div>
   );
 }

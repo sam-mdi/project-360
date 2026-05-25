@@ -1,27 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
-import { Clock, LayoutGrid, BarChart2, Calendar, Settings, ChevronLeft, Menu } from 'lucide-react';
+import {
+  Clock, LayoutGrid, BarChart2, Calendar, Settings, ChevronLeft, Menu,
+  Archive, FileText,
+} from 'lucide-react';
 import { RoutinePage } from './pages/RoutinePage';
 import { PlanPage } from './pages/PlanPage';
 import { ProgressPage } from './pages/ProgressPage';
 import { SchedulePage } from './pages/SchedulePage';
+import { HistoryPage } from './pages/HistoryPage';
+import { NotesPage } from './pages/NotesPage';
 import { SettingsModal } from './components/ui/SettingsModal';
 import { WelcomeModal } from './components/ui/WelcomeModal';
 import { CommandPalette } from './components/ui/CommandPalette';
+import { OnboardingWizard } from './components/ui/OnboardingWizard';
+import { WeeklyReview } from './components/ui/WeeklyReview';
 import { useSettings } from './stores/useSettings';
+import { useReviews } from './stores/useReviews';
 import { useKeyboard } from './hooks/useKeyboard';
 import { useNotifications } from './hooks/useNotifications';
+import { useSmartNotifications } from './hooks/useSmartNotifications';
 import { greetingText } from './lib/utils';
 import { cn } from './lib/utils';
+import { format, getDay } from 'date-fns';
 
-type Tab = 'routine' | 'plan' | 'progress' | 'schedule';
+type Tab = 'routine' | 'history' | 'plan' | 'progress' | 'schedule' | 'notes';
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
   { id: 'routine', label: 'Routine', icon: Clock },
+  { id: 'history', label: 'History', icon: Archive },
   { id: 'plan', label: 'Plan', icon: LayoutGrid },
   { id: 'progress', label: 'Progress', icon: BarChart2 },
   { id: 'schedule', label: 'Schedule', icon: Calendar },
+  { id: 'notes', label: 'Notes', icon: FileText },
 ];
 
 const TAB_ORDER = TABS.map((t) => t.id);
@@ -70,15 +82,36 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-  const { firstName } = useSettings();
+  const [showWeeklyReview, setShowWeeklyReview] = useState(false);
+  const { firstName, theme, onboardingComplete } = useSettings();
+  const { reviewDismissedWeek, getReviewForWeek } = useReviews();
 
   useNotifications();
+  useSmartNotifications();
 
   useEffect(() => {
     const seen = localStorage.getItem('p360-welcome-seen');
     if (!seen) {
       setShowWelcome(true);
       localStorage.setItem('p360-welcome-seen', '1');
+    }
+  }, []);
+
+  // Sync dark mode class on theme change
+  useEffect(() => {
+    if (theme === 'dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [theme]);
+
+  // Sunday 6pm weekly review trigger
+  useEffect(() => {
+    const now = new Date();
+    const isSunday = getDay(now) === 0;
+    const isEvening = now.getHours() >= 18;
+    const weekStart = format(now, 'yyyy-MM-dd');
+    if (isSunday && isEvening && !getReviewForWeek(weekStart) && reviewDismissedWeek !== weekStart) {
+      const timer = setTimeout(() => setShowWeeklyReview(true), 3000);
+      return () => clearTimeout(timer);
     }
   }, []);
 
@@ -99,9 +132,11 @@ export default function App() {
 
   const pages: Record<Tab, React.ReactNode> = {
     routine: <RoutinePage />,
+    history: <HistoryPage />,
     plan: <PlanPage />,
     progress: <ProgressPage />,
     schedule: <SchedulePage />,
+    notes: <NotesPage />,
   };
 
   return (
@@ -233,6 +268,8 @@ export default function App() {
       {/* Global modals */}
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <WelcomeModal open={showWelcome} onClose={() => setShowWelcome(false)} />
+      {!onboardingComplete && <OnboardingWizard onComplete={() => {}} />}
+      {showWeeklyReview && <WeeklyReview onClose={() => setShowWeeklyReview(false)} />}
       <CommandPalette
         open={commandOpen}
         onClose={() => setCommandOpen(false)}

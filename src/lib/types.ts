@@ -13,6 +13,8 @@ export type NotificationSound =
 
 export type RecurrenceType = 'daily' | 'weekly' | 'custom';
 
+export type EnergyLevel = 'high' | 'medium' | 'low';
+
 export interface TimeBlock {
   id: string;
   label: string;
@@ -29,6 +31,7 @@ export interface TimeBlock {
   sequenceId?: string;
   notes?: string;
   skipped?: boolean;
+  energyLevel?: EnergyLevel;
 }
 
 export interface ActualBlock {
@@ -59,6 +62,7 @@ export interface PlanColumn {
   id: string;
   label: string;
   type: ColumnType;
+  width?: number; // px
 }
 
 export interface PlanRow {
@@ -101,6 +105,25 @@ export interface ScheduleEvent {
   notes?: string;
 }
 
+// History
+export interface HistoryEntry {
+  date: string;
+  blocks: TimeBlock[];
+  actuals: ActualBlock[];
+  completionRate: number;
+}
+
+// Notes
+export interface Note {
+  id: string;
+  title: string;
+  content: string; // HTML
+  createdAt: string;
+  updatedAt: string;
+  pinned: boolean;
+  color: string;
+}
+
 // Settings
 export interface Settings {
   firstName: string;
@@ -108,4 +131,13 @@ export interface Settings {
   notificationsEnabled: boolean;
   defaultSound: NotificationSound;
   showCompletedBlocks: boolean;
+  theme: 'light' | 'dark';
+  claudeApiKey: string;
+  onboardingComplete: boolean;
+  pomodoroWork: number;
+  pomodoroShortBreak: number;
+  pomodoroLongBreak: number;
+  pomodoroAutoStart: boolean;
+  waterGoal: number;
+  stepsGoal: number;
 }

@@ -13,6 +13,15 @@ const defaults: Settings = {
   notificationsEnabled: false,
   defaultSound: 'ding',
   showCompletedBlocks: true,
+  theme: 'light',
+  claudeApiKey: '',
+  onboardingComplete: false,
+  pomodoroWork: 25,
+  pomodoroShortBreak: 5,
+  pomodoroLongBreak: 15,
+  pomodoroAutoStart: false,
+  waterGoal: 8,
+  stepsGoal: 10000,
 };
 
 export const useSettings = create<SettingsStore>()(

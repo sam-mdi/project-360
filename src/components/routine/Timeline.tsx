@@ -6,7 +6,6 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { WavyBlock } from '../ui/WavyBlock';
 import type { TimeBlockWithMeta } from '../../hooks/useTimeBlocks';
-import { timeToMinutes } from '../../lib/utils';
 import { useRoutine } from '../../stores/useRoutine';
 import { todayStr } from '../../lib/utils';
 
@@ -17,14 +16,25 @@ interface TimelineProps {
   date?: string;
 }
 
-function SortableBlock({ block, onClick, isFirst, isLast, isSelected }: {
+function SortableBlock({
+  block,
+  onClick,
+  isFirst,
+  isLast,
+  isSelected,
+}: {
   block: TimeBlockWithMeta;
   onClick: () => void;
   isFirst: boolean;
   isLast: boolean;
   isSelected: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: block.id,
+  });
+
+  const blockHeight = Math.max(60, block.duration * 2);
+
   return (
     <div
       ref={setNodeRef}
@@ -33,6 +43,8 @@ function SortableBlock({ block, onClick, isFirst, isLast, isSelected }: {
         transition,
         opacity: isDragging ? 0.5 : 1,
         zIndex: isDragging ? 50 : isSelected ? 10 : 1,
+        height: `${blockHeight}px`,
+        minHeight: `${blockHeight}px`,
       }}
       {...attributes}
       {...listeners}
@@ -50,6 +62,7 @@ function SortableBlock({ block, onClick, isFirst, isLast, isSelected }: {
         onClick={onClick}
         isFirst={isFirst}
         isLast={isLast}
+        energyLevel={block.energyLevel}
       />
     </div>
   );
@@ -91,28 +104,35 @@ export function Timeline({ blocks, onBlockClick, selectedId, date }: TimelinePro
   }
 
   return (
-    <div ref={scrollRef} className="flex gap-4 px-4 py-3">
-      {/* Hour markers */}
-      <div className="flex flex-col" style={{ width: 36, flexShrink: 0 }}>
+    <div
+      ref={scrollRef}
+      className="px-4 py-3"
+      style={{ display: 'grid', gridTemplateColumns: '48px 1fr', gap: 0 }}
+    >
+      {/* Time markers column */}
+      <div className="flex flex-col" style={{ paddingTop: 2 }}>
         {blocks.map((block) => {
-          const hour = Math.floor(timeToMinutes(block.startTime) / 60);
-          const height = Math.max(80, block.duration * 1.6);
+          const [h, m] = block.startTime.split(':').map(Number);
+          const label = h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`;
+          const blockHeight = Math.max(60, block.duration * 2);
           return (
             <div
               key={block.id}
-              style={{ height: `${height}px`, minHeight: `${height}px` }}
+              style={{ height: `${blockHeight}px`, minHeight: `${blockHeight}px`, marginBottom: 8 }}
               className="flex items-start pt-3"
             >
-              <span className="text-xs font-semibold text-stone-400">{hour}</span>
+              <span className="text-xs font-semibold text-stone-400 leading-none">
+                {m === 0 ? label : `${h}:${String(m).padStart(2, '0')}`}
+              </span>
             </div>
           );
         })}
       </div>
 
-      {/* Blocks */}
+      {/* Blocks column */}
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
-          <div className="flex-1 flex flex-col gap-0">
+          <div className="flex flex-col" style={{ gap: 8 }}>
             {blocks.map((block, i) => (
               <div key={block.id} ref={block.isActive ? activeRef : undefined}>
                 <SortableBlock
